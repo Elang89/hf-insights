@@ -3,8 +3,48 @@ import json
 from glob import glob
 from pprint import pprint
 from multiprocessing import Process
-from typing import Dict, List
+from typing import Dict, List, Union, Tuple
 from csv import DictWriter
+
+#TODO: features and reviews
+
+def extract_splits(json_data: Dict[str, str]) -> Dict[str, str]: 
+    train = json_data.get("train", False)
+    test = json_data.get("test", False)
+    validation = json_data.get("validation", False)
+    data = {}
+
+    if train:
+        data.update({"has_train_split": 1})
+    else:
+        data.update({"has_train_split": 0})
+    
+    if test: 
+        data.update({"has_test_split": 1})
+    else:
+        data.update({"has_test_split": 0})
+
+    if validation: 
+        data.update({"has_validation_split": 1})
+    else: 
+        data.update({"has_validation_split": 0})
+        
+
+    return data
+
+
+def extract_citation_information(json_data: str):
+    pass
+
+
+def check_versioning(json_data: Union[dict, str]) -> str:
+    version = json_data
+
+    if isinstance(json_data, str): 
+        return version
+    elif isinstance(version, dict):
+        version_str = version.get("version_str")
+        return version_str
 
 
 def analyze_jsons() -> None: 
@@ -14,10 +54,13 @@ def analyze_jsons() -> None:
             "config_name",
             "is_config",
             "description_size",
-            "download_size", 
+            "download_size(bytes)", 
             "has_homepage",
-            "has_version",
+            "version",
             "has_license",
+            "has_train_split",
+            "has_test_split",
+            "has_validation_split"
     ]
     result_file = open("data.csv", "w")
 
@@ -32,16 +75,21 @@ def analyze_jsons() -> None:
             with open(json_file_path, "r") as jsonfile:
                 loaded_json = json.load(jsonfile)
                 description_size = len(loaded_json["description"])
+                has_version = check_versioning(loaded_json["version"])
+                splits = extract_splits(loaded_json["splits"])
 
                 row = {
                     "builder_name": loaded_json.get("builder_name"),
                     "config_name": loaded_json.get("config_name"), 
                     "is_config": 1 if loaded_json.get("config_name") != "default" else 0,
                     "description_size": description_size,
-                    "download_size": loaded_json.get("download_size"),
+                    "download_size(bytes)": loaded_json.get("download_size"),
                     "has_homepage": 1 if loaded_json.get("homepage") else 0,
-                    "has_version": 1 if loaded_json.get("version") else 0,
+                    "version": has_version,
                     "has_license": 1 if loaded_json.get("license") else 0,
+                    "has_train_split": splits.get("has_train_split"),
+                    "has_test_split": splits.get("has_test_split"),
+                    "has_validation_split": splits.get("has_validation_split")
                 }
 
                 writer.writerow(row)
